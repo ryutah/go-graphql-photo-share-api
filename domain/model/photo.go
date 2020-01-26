@@ -11,6 +11,7 @@ type Photo struct {
 	URL         *url.URL
 	Name        string
 	Description string
+	Category    PhotoCategory
 }
 
 func (p *Photo) FullURL() string {
