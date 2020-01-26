@@ -47,3 +47,15 @@
     - 不要なresolver定義が生成されてしまうので、改めて更新
 
 1. resolverを更新する
+
+### 4. 1対多のリレーションを定義
+
+1. スキーマ定義を更新
+1. モデルの変更
+1. コード生成
+
+    ```console
+    go run github.com/99designs/gqlgen generate
+    ```
+
+1. resolverを更新する
