@@ -44,12 +44,14 @@ func newQuery() *query {
 				URL:         mustURL("http://sample.com/photo1.png"),
 				Name:        "Photo1",
 				Description: "description of photo1",
+				Category:    model.PhotoCategorySelfie,
 			},
 			{
 				ID:          "photo2",
 				URL:         mustURL("http://sample.com/photo2.png"),
 				Name:        "Photo2",
-				Description: "description of photo1",
+				Description: "description of photo2",
+				Category:    model.PhotoCategoryLandscape,
 			},
 		},
 	}
@@ -72,13 +74,17 @@ func newMutation() *mutation {
 	return new(mutation)
 }
 
-func (m *mutation) PostPhoto(ctx context.Context, name string, description string) (*model.Photo, error) {
-	return &model.Photo{
-		ID:          "new_photo",
-		Name:        name,
-		Description: description,
-		URL:         mustURL("http://sample.com/new_photo.png"),
-	}, nil
+func (m *mutation) PostPhoto(ctx context.Context, input model.PostPhotoInput) (*model.Photo, error) {
+	newPhoto := &model.Photo{
+		ID:       "new_photo",
+		Name:     input.Name,
+		Category: *input.Category,
+		URL:      mustURL("http://sample.com/new_photo.png"),
+	}
+	if input.Description != nil {
+		newPhoto.Description = *input.Description
+	}
+	return newPhoto, nil
 }
 
 func mustURL(s string) *url.URL {
