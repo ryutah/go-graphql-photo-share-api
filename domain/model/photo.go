@@ -1,7 +1,7 @@
 package model
 
 import (
-	"net/url"
+	"fmt"
 )
 
 type PhotoID string
@@ -9,15 +9,11 @@ type PhotoID string
 type Photo struct {
 	ID          PhotoID
 	PostedBy    UserID
-	URL         *url.URL
 	Name        string
 	Description string
 	Category    PhotoCategory
 }
 
-func (p *Photo) FullURL() string {
-	if p.URL == nil {
-		return ""
-	}
-	return p.URL.String()
+func (p *Photo) URL() URI {
+	return URI(fmt.Sprintf("http://sample.com/%v.png", p.ID))
 }

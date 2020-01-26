@@ -19,7 +19,7 @@ type Mutation {
 
 type Photo @goModel(model: "github.com/ryutah/go-graphql-photo-share-api/domain/model.Photo") {
   id: PhotoID!
-  url: String! @goField(name: "FullURL")
+  url: URI! @goField(name: "URL")
   name: String!
   description: String!
   category: PhotoCategory!
@@ -45,8 +45,10 @@ enum PhotoCategory {
 type User @goModel(model: "github.com/ryutah/go-graphql-photo-share-api/domain/model.User") {
   githubLogin: UserID! @goField(name: "ID")
   name: String
-  avatar: String @goField(name: "AvaterURL")
+  avatar: URI
   postedPhotos: [Photo!]!
 }
 
 scalar UserID @goModel(model: "github.com/ryutah/go-graphql-photo-share-api/domain/model.UserID")
+
+scalar URI @goModel(model: "github.com/ryutah/go-graphql-photo-share-api/domain/model.URI")

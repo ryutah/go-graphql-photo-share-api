@@ -52,10 +52,10 @@ type ComplexityRoot struct {
 	Photo struct {
 		Category    func(childComplexity int) int
 		Description func(childComplexity int) int
-		FullURL     func(childComplexity int) int
 		ID          func(childComplexity int) int
 		Name        func(childComplexity int) int
 		PostedBy    func(childComplexity int) int
+		URL         func(childComplexity int) int
 	}
 
 	Query struct {
@@ -64,7 +64,7 @@ type ComplexityRoot struct {
 	}
 
 	User struct {
-		AvaterURL    func(childComplexity int) int
+		Avatar       func(childComplexity int) int
 		ID           func(childComplexity int) int
 		Name         func(childComplexity int) int
 		PostedPhotos func(childComplexity int) int
@@ -126,13 +126,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Photo.Description(childComplexity), true
 
-	case "Photo.url":
-		if e.complexity.Photo.FullURL == nil {
-			break
-		}
-
-		return e.complexity.Photo.FullURL(childComplexity), true
-
 	case "Photo.id":
 		if e.complexity.Photo.ID == nil {
 			break
@@ -154,6 +147,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Photo.PostedBy(childComplexity), true
 
+	case "Photo.url":
+		if e.complexity.Photo.URL == nil {
+			break
+		}
+
+		return e.complexity.Photo.URL(childComplexity), true
+
 	case "Query.allPhotos":
 		if e.complexity.Query.AllPhotos == nil {
 			break
@@ -169,11 +169,11 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		return e.complexity.Query.TotalPhotos(childComplexity), true
 
 	case "User.avatar":
-		if e.complexity.User.AvaterURL == nil {
+		if e.complexity.User.Avatar == nil {
 			break
 		}
 
-		return e.complexity.User.AvaterURL(childComplexity), true
+		return e.complexity.User.Avatar(childComplexity), true
 
 	case "User.githubLogin":
 		if e.complexity.User.ID == nil {
@@ -279,7 +279,7 @@ type Mutation {
 
 type Photo @goModel(model: "github.com/ryutah/go-graphql-photo-share-api/domain/model.Photo") {
   id: PhotoID!
-  url: String! @goField(name: "FullURL")
+  url: URI! @goField(name: "URL")
   name: String!
   description: String!
   category: PhotoCategory!
@@ -305,11 +305,13 @@ enum PhotoCategory {
 type User @goModel(model: "github.com/ryutah/go-graphql-photo-share-api/domain/model.User") {
   githubLogin: UserID! @goField(name: "ID")
   name: String
-  avatar: String @goField(name: "AvaterURL")
+  avatar: URI
   postedPhotos: [Photo!]!
 }
 
 scalar UserID @goModel(model: "github.com/ryutah/go-graphql-photo-share-api/domain/model.UserID")
+
+scalar URI @goModel(model: "github.com/ryutah/go-graphql-photo-share-api/domain/model.URI")
 `},
 )
 
@@ -481,7 +483,7 @@ func (ec *executionContext) _Photo_url(ctx context.Context, field graphql.Collec
 	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.FullURL(), nil
+		return obj.URL(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -493,10 +495,10 @@ func (ec *executionContext) _Photo_url(ctx context.Context, field graphql.Collec
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(model.URI)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNURI2githubᚗcomᚋryutahᚋgoᚑgraphqlᚑphotoᚑshareᚑapiᚋdomainᚋmodelᚐURI(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Photo_name(ctx context.Context, field graphql.CollectedField, obj *model.Photo) (ret graphql.Marshaler) {
@@ -877,13 +879,13 @@ func (ec *executionContext) _User_avatar(ctx context.Context, field graphql.Coll
 		Object:   "User",
 		Field:    field,
 		Args:     nil,
-		IsMethod: true,
+		IsMethod: false,
 	}
 	ctx = graphql.WithResolverContext(ctx, rctx)
 	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.AvaterURL(), nil
+		return obj.Avatar, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -892,10 +894,10 @@ func (ec *executionContext) _User_avatar(ctx context.Context, field graphql.Coll
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(model.URI)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-	return ec.marshalOString2string(ctx, field.Selections, res)
+	return ec.marshalOURI2githubᚗcomᚋryutahᚋgoᚑgraphqlᚑphotoᚑshareᚑapiᚋdomainᚋmodelᚐURI(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _User_postedPhotos(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
@@ -2686,6 +2688,21 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 	return res
 }
 
+func (ec *executionContext) unmarshalNURI2githubᚗcomᚋryutahᚋgoᚑgraphqlᚑphotoᚑshareᚑapiᚋdomainᚋmodelᚐURI(ctx context.Context, v interface{}) (model.URI, error) {
+	tmp, err := graphql.UnmarshalString(v)
+	return model.URI(tmp), err
+}
+
+func (ec *executionContext) marshalNURI2githubᚗcomᚋryutahᚋgoᚑgraphqlᚑphotoᚑshareᚑapiᚋdomainᚋmodelᚐURI(ctx context.Context, sel ast.SelectionSet, v model.URI) graphql.Marshaler {
+	res := graphql.MarshalString(string(v))
+	if res == graphql.Null {
+		if !ec.HasError(graphql.GetResolverContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
+}
+
 func (ec *executionContext) marshalNUser2githubᚗcomᚋryutahᚋgoᚑgraphqlᚑphotoᚑshareᚑapiᚋdomainᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v model.User) graphql.Marshaler {
 	return ec._User(ctx, sel, &v)
 }
@@ -3081,6 +3098,15 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 		return graphql.Null
 	}
 	return ec.marshalOString2string(ctx, sel, *v)
+}
+
+func (ec *executionContext) unmarshalOURI2githubᚗcomᚋryutahᚋgoᚑgraphqlᚑphotoᚑshareᚑapiᚋdomainᚋmodelᚐURI(ctx context.Context, v interface{}) (model.URI, error) {
+	tmp, err := graphql.UnmarshalString(v)
+	return model.URI(tmp), err
+}
+
+func (ec *executionContext) marshalOURI2githubᚗcomᚋryutahᚋgoᚑgraphqlᚑphotoᚑshareᚑapiᚋdomainᚋmodelᚐURI(ctx context.Context, sel ast.SelectionSet, v model.URI) graphql.Marshaler {
+	return graphql.MarshalString(string(v))
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {
