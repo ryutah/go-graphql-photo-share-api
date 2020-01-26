@@ -29,3 +29,21 @@
 
 1. resolverを更新する
     - 未定義の関数をresolverに追加する感じ
+
+### 3. enum, inputの追加
+
+1. スキーマ定義を更新
+1. コード生成
+    - inputとenumを生成する
+
+    ```console
+    go run github.com/99designs/gqlgen generate
+    ```
+
+1. モデルの変更
+    - 追加されたフィールドを追加
+
+1. コード生成
+    - 不要なresolver定義が生成されてしまうので、改めて更新
+
+1. resolverを更新する
