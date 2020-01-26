@@ -1,3 +1,17 @@
 type Query {
   totalPhotos: Int!
+  allPhotos: [Photo!]
 }
+
+type Mutation {
+  postPhoto(name: String!, description: String!): Photo!
+}
+
+type Photo {
+  id: PhotoID!
+  url: String! @goField(name: "FullURL")
+  name: String!
+  description: String!
+}
+
+scalar PhotoID
