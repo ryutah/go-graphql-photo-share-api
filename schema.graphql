@@ -23,6 +23,7 @@ type Photo @goModel(model: "github.com/ryutah/go-graphql-photo-share-api/domain/
   name: String!
   description: String!
   category: PhotoCategory!
+  postedBy: User!
 }
 
 scalar PhotoID @goModel(model: "github.com/ryutah/go-graphql-photo-share-api/domain/model.PhotoID")
@@ -40,3 +41,12 @@ enum PhotoCategory {
   LANDSCAPE
   GRAPHIC
 }
+
+type User {
+  githubLogin: UserID!
+  name: String
+  avatar: String
+  postedPhotos: [Photo!]!
+}
+
+scalar UserID
