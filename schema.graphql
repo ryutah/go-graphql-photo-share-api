@@ -14,7 +14,7 @@ type Query {
 }
 
 type Mutation {
-  postPhoto(name: String!, description: String!): Photo!
+  postPhoto(input: PostPhotoInput!): Photo!
 }
 
 type Photo @goModel(model: "github.com/ryutah/go-graphql-photo-share-api/domain/model.Photo") {
@@ -22,6 +22,21 @@ type Photo @goModel(model: "github.com/ryutah/go-graphql-photo-share-api/domain/
   url: String! @goField(name: "FullURL")
   name: String!
   description: String!
+  category: PhotoCategory!
 }
 
 scalar PhotoID @goModel(model: "github.com/ryutah/go-graphql-photo-share-api/domain/model.PhotoID")
+
+input PostPhotoInput {
+  name: String!
+  category: PhotoCategory=PORTRAIT
+  description: String
+}
+
+enum PhotoCategory {
+  SELFIE
+  PORTRAIT
+  ACTION
+  LANDSCAPE
+  GRAPHIC
+}
