@@ -12,6 +12,7 @@ import (
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
+	"github.com/ryutah/go-graphql-photo-share-api/domain/model"
 	"github.com/vektah/gqlparser"
 	"github.com/vektah/gqlparser/ast"
 )
@@ -34,6 +35,7 @@ type Config struct {
 }
 
 type ResolverRoot interface {
+	Mutation() MutationResolver
 	Query() QueryResolver
 }
 
@@ -41,13 +43,29 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	Mutation struct {
+		PostPhoto func(childComplexity int, name string, description string) int
+	}
+
+	Photo struct {
+		Description func(childComplexity int) int
+		FullURL     func(childComplexity int) int
+		ID          func(childComplexity int) int
+		Name        func(childComplexity int) int
+	}
+
 	Query struct {
+		AllPhotos   func(childComplexity int) int
 		TotalPhotos func(childComplexity int) int
 	}
 }
 
+type MutationResolver interface {
+	PostPhoto(ctx context.Context, name string, description string) (*model.Photo, error)
+}
 type QueryResolver interface {
 	TotalPhotos(ctx context.Context) (int, error)
+	AllPhotos(ctx context.Context) ([]*model.Photo, error)
 }
 
 type executableSchema struct {
@@ -64,6 +82,53 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	ec := executionContext{nil, e}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "Mutation.postPhoto":
+		if e.complexity.Mutation.PostPhoto == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_postPhoto_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.PostPhoto(childComplexity, args["name"].(string), args["description"].(string)), true
+
+	case "Photo.description":
+		if e.complexity.Photo.Description == nil {
+			break
+		}
+
+		return e.complexity.Photo.Description(childComplexity), true
+
+	case "Photo.url":
+		if e.complexity.Photo.FullURL == nil {
+			break
+		}
+
+		return e.complexity.Photo.FullURL(childComplexity), true
+
+	case "Photo.id":
+		if e.complexity.Photo.ID == nil {
+			break
+		}
+
+		return e.complexity.Photo.ID(childComplexity), true
+
+	case "Photo.name":
+		if e.complexity.Photo.Name == nil {
+			break
+		}
+
+		return e.complexity.Photo.Name(childComplexity), true
+
+	case "Query.allPhotos":
+		if e.complexity.Query.AllPhotos == nil {
+			break
+		}
+
+		return e.complexity.Query.AllPhotos(childComplexity), true
 
 	case "Query.totalPhotos":
 		if e.complexity.Query.TotalPhotos == nil {
@@ -94,7 +159,20 @@ func (e *executableSchema) Query(ctx context.Context, op *ast.OperationDefinitio
 }
 
 func (e *executableSchema) Mutation(ctx context.Context, op *ast.OperationDefinition) *graphql.Response {
-	return graphql.ErrorResponse(ctx, "mutations are not supported")
+	ec := executionContext{graphql.GetRequestContext(ctx), e}
+
+	buf := ec.RequestMiddleware(ctx, func(ctx context.Context) []byte {
+		data := ec._Mutation(ctx, op.SelectionSet)
+		var buf bytes.Buffer
+		data.MarshalGQL(&buf)
+		return buf.Bytes()
+	})
+
+	return &graphql.Response{
+		Data:       buf,
+		Errors:     ec.Errors,
+		Extensions: ec.Extensions,
+	}
 }
 
 func (e *executableSchema) Subscription(ctx context.Context, op *ast.OperationDefinition) func() *graphql.Response {
@@ -121,15 +199,61 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var parsedSchema = gqlparser.MustLoadSchema(
-	&ast.Source{Name: "schema.graphql", Input: `type Query {
+	&ast.Source{Name: "schema.graphql", Input: `directive @goModel(model: String, models: [String!]) on OBJECT 
+    | INPUT_OBJECT 
+    | SCALAR 
+    | ENUM 
+    | INTERFACE 
+    | UNION
+
+directive @goField(forceResolver: Boolean, name: String) on INPUT_FIELD_DEFINITION 
+    | FIELD_DEFINITION
+
+type Query {
   totalPhotos: Int!
+  allPhotos: [Photo!]
 }
+
+type Mutation {
+  postPhoto(name: String!, description: String!): Photo!
+}
+
+type Photo @goModel(model: "github.com/ryutah/go-graphql-photo-share-api/domain/model.Photo") {
+  id: PhotoID!
+  url: String! @goField(name: "FullURL")
+  name: String!
+  description: String!
+}
+
+scalar PhotoID @goModel(model: "github.com/ryutah/go-graphql-photo-share-api/domain/model.PhotoID")
 `},
 )
 
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
+
+func (ec *executionContext) field_Mutation_postPhoto_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["name"]; ok {
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["name"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["description"]; ok {
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["description"] = arg1
+	return args, nil
+}
 
 func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -181,6 +305,198 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 
 // region    **************************** field.gotpl *****************************
 
+func (ec *executionContext) _Mutation_postPhoto(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_postPhoto_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	rctx.Args = args
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().PostPhoto(rctx, args["name"].(string), args["description"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Photo)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNPhoto2ᚖgithubᚗcomᚋryutahᚋgoᚑgraphqlᚑphotoᚑshareᚑapiᚋdomainᚋmodelᚐPhoto(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Photo_id(ctx context.Context, field graphql.CollectedField, obj *model.Photo) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "Photo",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.PhotoID)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNPhotoID2githubᚗcomᚋryutahᚋgoᚑgraphqlᚑphotoᚑshareᚑapiᚋdomainᚋmodelᚐPhotoID(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Photo_url(ctx context.Context, field graphql.CollectedField, obj *model.Photo) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "Photo",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.FullURL(), nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Photo_name(ctx context.Context, field graphql.CollectedField, obj *model.Photo) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "Photo",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Photo_description(ctx context.Context, field graphql.CollectedField, obj *model.Photo) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "Photo",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Description, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query_totalPhotos(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
@@ -216,6 +532,40 @@ func (ec *executionContext) _Query_totalPhotos(ctx context.Context, field graphq
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
 	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_allPhotos(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "Query",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().AllPhotos(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Photo)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalOPhoto2ᚕᚖgithubᚗcomᚋryutahᚋgoᚑgraphqlᚑphotoᚑshareᚑapiᚋdomainᚋmodelᚐPhotoᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1452,6 +1802,79 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 // region    **************************** object.gotpl ****************************
 
+var mutationImplementors = []string{"Mutation"}
+
+func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.RequestContext, sel, mutationImplementors)
+
+	ctx = graphql.WithResolverContext(ctx, &graphql.ResolverContext{
+		Object: "Mutation",
+	})
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Mutation")
+		case "postPhoto":
+			out.Values[i] = ec._Mutation_postPhoto(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var photoImplementors = []string{"Photo"}
+
+func (ec *executionContext) _Photo(ctx context.Context, sel ast.SelectionSet, obj *model.Photo) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.RequestContext, sel, photoImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Photo")
+		case "id":
+			out.Values[i] = ec._Photo_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "url":
+			out.Values[i] = ec._Photo_url(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "name":
+			out.Values[i] = ec._Photo_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "description":
+			out.Values[i] = ec._Photo_description(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var queryImplementors = []string{"Query"}
 
 func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -1479,6 +1902,17 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
+				return res
+			})
+		case "allPhotos":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_allPhotos(ctx, field)
 				return res
 			})
 		case "__type":
@@ -1769,6 +2203,35 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 	return res
 }
 
+func (ec *executionContext) marshalNPhoto2githubᚗcomᚋryutahᚋgoᚑgraphqlᚑphotoᚑshareᚑapiᚋdomainᚋmodelᚐPhoto(ctx context.Context, sel ast.SelectionSet, v model.Photo) graphql.Marshaler {
+	return ec._Photo(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNPhoto2ᚖgithubᚗcomᚋryutahᚋgoᚑgraphqlᚑphotoᚑshareᚑapiᚋdomainᚋmodelᚐPhoto(ctx context.Context, sel ast.SelectionSet, v *model.Photo) graphql.Marshaler {
+	if v == nil {
+		if !ec.HasError(graphql.GetResolverContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Photo(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNPhotoID2githubᚗcomᚋryutahᚋgoᚑgraphqlᚑphotoᚑshareᚑapiᚋdomainᚋmodelᚐPhotoID(ctx context.Context, v interface{}) (model.PhotoID, error) {
+	tmp, err := graphql.UnmarshalString(v)
+	return model.PhotoID(tmp), err
+}
+
+func (ec *executionContext) marshalNPhotoID2githubᚗcomᚋryutahᚋgoᚑgraphqlᚑphotoᚑshareᚑapiᚋdomainᚋmodelᚐPhotoID(ctx context.Context, sel ast.SelectionSet, v model.PhotoID) graphql.Marshaler {
+	res := graphql.MarshalString(string(v))
+	if res == graphql.Null {
+		if !ec.HasError(graphql.GetResolverContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
+}
+
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
 	return graphql.UnmarshalString(v)
 }
@@ -2032,12 +2495,84 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return ec.marshalOBoolean2bool(ctx, sel, *v)
 }
 
+func (ec *executionContext) marshalOPhoto2ᚕᚖgithubᚗcomᚋryutahᚋgoᚑgraphqlᚑphotoᚑshareᚑapiᚋdomainᚋmodelᚐPhotoᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Photo) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		rctx := &graphql.ResolverContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithResolverContext(ctx, rctx)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNPhoto2ᚖgithubᚗcomᚋryutahᚋgoᚑgraphqlᚑphotoᚑshareᚑapiᚋdomainᚋmodelᚐPhoto(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
 func (ec *executionContext) unmarshalOString2string(ctx context.Context, v interface{}) (string, error) {
 	return graphql.UnmarshalString(v)
 }
 
 func (ec *executionContext) marshalOString2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
 	return graphql.MarshalString(v)
+}
+
+func (ec *executionContext) unmarshalOString2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		res[i], err = ec.unmarshalNString2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOString2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
+	}
+
+	return ret
 }
 
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v interface{}) (*string, error) {
