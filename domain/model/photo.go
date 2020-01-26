@@ -8,6 +8,7 @@ type PhotoID string
 
 type Photo struct {
 	ID          PhotoID
+	PostedBy    UserID
 	URL         *url.URL
 	Name        string
 	Description string

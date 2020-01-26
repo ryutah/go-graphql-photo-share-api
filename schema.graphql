@@ -42,11 +42,11 @@ enum PhotoCategory {
   GRAPHIC
 }
 
-type User {
-  githubLogin: UserID!
+type User @goModel(model: "github.com/ryutah/go-graphql-photo-share-api/domain/model.User") {
+  githubLogin: UserID! @goField(name: "ID")
   name: String
-  avatar: String
+  avatar: String @goField(name: "AvaterURL")
   postedPhotos: [Photo!]!
 }
 
-scalar UserID
+scalar UserID @goModel(model: "github.com/ryutah/go-graphql-photo-share-api/domain/model.UserID")
