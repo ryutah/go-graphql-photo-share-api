@@ -9,3 +9,30 @@ import (
 type User interface {
 	Get(context.Context, model.UserID) (*model.User, error)
 }
+
+type UserSearch interface {
+	Search(context.Context, UserQuery) ([]*model.User, error)
+}
+
+type UserQueryResolver interface {
+	InPhoto(model.PhotoID)
+}
+
+type UserQuery struct {
+	inPhoto *model.PhotoID
+}
+
+func CreateUserQuery() UserQuery {
+	return UserQuery{}
+}
+
+func (u UserQuery) WithInPhoto(id model.PhotoID) UserQuery {
+	u.inPhoto = &id
+	return u
+}
+
+func (u UserQuery) Resolve(r UserQueryResolver) {
+	if v := u.inPhoto; v != nil {
+		r.InPhoto(*v)
+	}
+}

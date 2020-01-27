@@ -43,8 +43,11 @@ var (
 
 type Photo struct{}
 
-var _ repository.Photo = new(Photo)
-var _ factory.PhotoIDGenerator = new(Photo)
+var (
+	_ repository.Photo         = new(Photo)
+	_ repository.PhotoSearch   = new(Photo)
+	_ factory.PhotoIDGenerator = new(Photo)
+)
 
 func NewPhoto() *Photo {
 	return new(Photo)
@@ -76,13 +79,21 @@ func (p *Photo) Count(_ context.Context) (int, error) {
 	return len(photoStorage), nil
 }
 
-func (p *Photo) ListPostedBy(_ context.Context, postedBy model.UserID) ([]*model.Photo, error) {
+func (p *Photo) Search(ctx context.Context, q repository.PhotoQuery) ([]*model.Photo, error) {
+	r := new(photoQueryResolver)
+	q.Reslove(r)
+
 	result := make([]*model.Photo, 0, len(photoStorage))
 	for _, v := range photoStorage {
-		if v.PostedBy == postedBy {
-			result = append(result, v)
+		if val := r.postedBy; val != nil && v.PostedBy != *val {
+			continue
 		}
+		if val := r.tagged; val != nil && !existsTag(v.ID, *val) {
+			continue
+		}
+		result = append(result, v)
 	}
+
 	return result, nil
 }
 
@@ -90,4 +101,17 @@ func (p *Photo) NewID() model.PhotoID {
 	photoStorageMux.Lock()
 	defer photoStorageMux.Unlock()
 	return model.PhotoID(strconv.Itoa(len(photoStorage) + 1))
+}
+
+type photoQueryResolver struct {
+	postedBy *model.UserID
+	tagged   *model.UserID
+}
+
+func (p *photoQueryResolver) PostedBy(id model.UserID) {
+	p.postedBy = &id
+}
+
+func (p *photoQueryResolver) Tagged(id model.UserID) {
+	p.tagged = &id
 }

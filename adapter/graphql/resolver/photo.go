@@ -23,3 +23,7 @@ func newPhoto(p *registry.Provider) *photo {
 func (p *photo) PostedBy(ctx context.Context, target *model.Photo) (*model.User, error) {
 	return p.provier.User(ctx).Get(ctx, target.PostedBy)
 }
+
+func (p *photo) TaggedUsers(ctx context.Context, target *model.Photo) ([]*model.User, error) {
+	return p.provier.User(ctx).InPhoto(ctx, target.ID)
+}

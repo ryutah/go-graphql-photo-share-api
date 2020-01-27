@@ -13,11 +13,12 @@ type Photo struct {
 		photo *factory.Photo
 	}
 	repository struct {
-		photo repository.Photo
+		photo       repository.Photo
+		photoSearch repository.PhotoSearch
 	}
 }
 
-func NewPhoto(photoFact *factory.Photo, photoRepo repository.Photo) *Photo {
+func NewPhoto(photoFact *factory.Photo, photoRepo repository.Photo, photoSearch repository.PhotoSearch) *Photo {
 	return &Photo{
 		factory: struct {
 			photo *factory.Photo
@@ -25,9 +26,11 @@ func NewPhoto(photoFact *factory.Photo, photoRepo repository.Photo) *Photo {
 			photo: photoFact,
 		},
 		repository: struct {
-			photo repository.Photo
+			photo       repository.Photo
+			photoSearch repository.PhotoSearch
 		}{
-			photo: photoRepo,
+			photo:       photoRepo,
+			photoSearch: photoSearch,
 		},
 	}
 }
@@ -49,5 +52,13 @@ func (p *Photo) TotalCount(ctx context.Context) (int, error) {
 }
 
 func (p *Photo) SearchPostedBy(ctx context.Context, postedBy model.UserID) ([]*model.Photo, error) {
-	return p.repository.photo.ListPostedBy(ctx, postedBy)
+	return p.repository.photoSearch.Search(
+		ctx, repository.CreatePhotoQuery().WithPostedBy(postedBy),
+	)
+}
+
+func (p *Photo) Tagged(ctx context.Context, taggedUser model.UserID) ([]*model.Photo, error) {
+	return p.repository.photoSearch.Search(
+		ctx, repository.CreatePhotoQuery().WithTagged(taggedUser),
+	)
 }

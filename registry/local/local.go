@@ -17,7 +17,9 @@ var dependencies = wire.NewSet(
 	inmemory.NewUser,
 	factory.NewPhoto,
 	wire.Bind(new(repository.Photo), new(*inmemory.Photo)),
+	wire.Bind(new(repository.PhotoSearch), new(*inmemory.Photo)),
 	wire.Bind(new(repository.User), new(*inmemory.User)),
+	wire.Bind(new(repository.UserSearch), new(*inmemory.User)),
 	wire.Bind(new(factory.PhotoIDGenerator), new(*inmemory.Photo)),
 )
 

@@ -55,6 +55,7 @@ type ComplexityRoot struct {
 		ID          func(childComplexity int) int
 		Name        func(childComplexity int) int
 		PostedBy    func(childComplexity int) int
+		TaggedUsers func(childComplexity int) int
 		URL         func(childComplexity int) int
 	}
 
@@ -66,6 +67,7 @@ type ComplexityRoot struct {
 	User struct {
 		Avatar       func(childComplexity int) int
 		ID           func(childComplexity int) int
+		InPhotos     func(childComplexity int) int
 		Name         func(childComplexity int) int
 		PostedPhotos func(childComplexity int) int
 	}
@@ -76,6 +78,7 @@ type MutationResolver interface {
 }
 type PhotoResolver interface {
 	PostedBy(ctx context.Context, obj *model.Photo) (*model.User, error)
+	TaggedUsers(ctx context.Context, obj *model.Photo) ([]*model.User, error)
 }
 type QueryResolver interface {
 	TotalPhotos(ctx context.Context) (int, error)
@@ -83,6 +86,7 @@ type QueryResolver interface {
 }
 type UserResolver interface {
 	PostedPhotos(ctx context.Context, obj *model.User) ([]*model.Photo, error)
+	InPhotos(ctx context.Context, obj *model.User) ([]*model.Photo, error)
 }
 
 type executableSchema struct {
@@ -147,6 +151,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Photo.PostedBy(childComplexity), true
 
+	case "Photo.taggedUsers":
+		if e.complexity.Photo.TaggedUsers == nil {
+			break
+		}
+
+		return e.complexity.Photo.TaggedUsers(childComplexity), true
+
 	case "Photo.url":
 		if e.complexity.Photo.URL == nil {
 			break
@@ -181,6 +192,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.User.ID(childComplexity), true
+
+	case "User.inPhotos":
+		if e.complexity.User.InPhotos == nil {
+			break
+		}
+
+		return e.complexity.User.InPhotos(childComplexity), true
 
 	case "User.name":
 		if e.complexity.User.Name == nil {
@@ -284,6 +302,7 @@ type Photo @goModel(model: "github.com/ryutah/go-graphql-photo-share-api/domain/
   description: String!
   category: PhotoCategory!
   postedBy: User!
+  taggedUsers: [User!]!
 }
 
 scalar PhotoID @goModel(model: "github.com/ryutah/go-graphql-photo-share-api/domain/model.PhotoID")
@@ -307,6 +326,7 @@ type User @goModel(model: "github.com/ryutah/go-graphql-photo-share-api/domain/m
   name: String
   avatar: URI
   postedPhotos: [Photo!]!
+  inPhotos: [Photo!]!
 }
 
 scalar UserID @goModel(model: "github.com/ryutah/go-graphql-photo-share-api/domain/model.UserID")
@@ -649,6 +669,43 @@ func (ec *executionContext) _Photo_postedBy(ctx context.Context, field graphql.C
 	return ec.marshalNUser2ᚖgithubᚗcomᚋryutahᚋgoᚑgraphqlᚑphotoᚑshareᚑapiᚋdomainᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Photo_taggedUsers(ctx context.Context, field graphql.CollectedField, obj *model.Photo) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "Photo",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Photo().TaggedUsers(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.User)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNUser2ᚕᚖgithubᚗcomᚋryutahᚋgoᚑgraphqlᚑphotoᚑshareᚑapiᚋdomainᚋmodelᚐUserᚄ(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query_totalPhotos(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
@@ -920,6 +977,43 @@ func (ec *executionContext) _User_postedPhotos(ctx context.Context, field graphq
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.User().PostedPhotos(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Photo)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNPhoto2ᚕᚖgithubᚗcomᚋryutahᚋgoᚑgraphqlᚑphotoᚑshareᚑapiᚋdomainᚋmodelᚐPhotoᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _User_inPhotos(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "User",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.User().InPhotos(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2211,6 +2305,20 @@ func (ec *executionContext) _Photo(ctx context.Context, sel ast.SelectionSet, ob
 				}
 				return res
 			})
+		case "taggedUsers":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Photo_taggedUsers(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -2306,6 +2414,20 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 					}
 				}()
 				res = ec._User_postedPhotos(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "inPhotos":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._User_inPhotos(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -2705,6 +2827,43 @@ func (ec *executionContext) marshalNURI2githubᚗcomᚋryutahᚋgoᚑgraphqlᚑp
 
 func (ec *executionContext) marshalNUser2githubᚗcomᚋryutahᚋgoᚑgraphqlᚑphotoᚑshareᚑapiᚋdomainᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v model.User) graphql.Marshaler {
 	return ec._User(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNUser2ᚕᚖgithubᚗcomᚋryutahᚋgoᚑgraphqlᚑphotoᚑshareᚑapiᚋdomainᚋmodelᚐUserᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.User) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		rctx := &graphql.ResolverContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithResolverContext(ctx, rctx)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNUser2ᚖgithubᚗcomᚋryutahᚋgoᚑgraphqlᚑphotoᚑshareᚑapiᚋdomainᚋmodelᚐUser(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
 }
 
 func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋryutahᚋgoᚑgraphqlᚑphotoᚑshareᚑapiᚋdomainᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {

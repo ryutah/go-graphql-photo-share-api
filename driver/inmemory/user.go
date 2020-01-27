@@ -26,7 +26,10 @@ var userStorage = map[model.UserID]*model.User{
 
 type User struct{}
 
-var _ repository.User = new(User)
+var (
+	_ repository.User       = new(User)
+	_ repository.UserSearch = new(User)
+)
 
 func NewUser() *User {
 	return new(User)
@@ -38,4 +41,27 @@ func (u *User) Get(_ context.Context, id model.UserID) (*model.User, error) {
 		return nil, fmt.Errorf("not found user for id(%v)", id)
 	}
 	return user, nil
+}
+
+func (u *User) Search(ctx context.Context, q repository.UserQuery) ([]*model.User, error) {
+	r := new(userQueryResolver)
+	q.Resolve(r)
+
+	results := make([]*model.User, 0, len(userStorage))
+	for _, v := range userStorage {
+		if val := r.inPhoto; val != nil && !existsTag(*val, v.ID) {
+			continue
+		}
+		results = append(results, v)
+	}
+
+	return results, nil
+}
+
+type userQueryResolver struct {
+	inPhoto *model.PhotoID
+}
+
+func (u *userQueryResolver) InPhoto(id model.PhotoID) {
+	u.inPhoto = &id
 }
