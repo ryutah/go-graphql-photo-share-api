@@ -2,6 +2,7 @@ package factory
 
 import (
 	"github.com/ryutah/go-graphql-photo-share-api/domain/model"
+	"github.com/ryutah/go-graphql-photo-share-api/lib/times"
 )
 
 type PhotoIDGenerator interface {
@@ -20,8 +21,9 @@ func NewPhoto(g PhotoIDGenerator) *Photo {
 
 func (p *Photo) FromPostPhoto(input model.PostPhotoInput) *model.Photo {
 	photo := model.Photo{
-		ID:   p.generator.NewID(),
-		Name: input.Name,
+		ID:      p.generator.NewID(),
+		Name:    input.Name,
+		Created: times.Now(),
 	}
 	if v := input.Category; v != nil {
 		photo.Category = *v

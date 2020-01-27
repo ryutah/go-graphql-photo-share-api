@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"time"
 )
 
 type PhotoID string
@@ -12,6 +13,7 @@ type Photo struct {
 	Name        string
 	Description string
 	Category    PhotoCategory
+	Created     time.Time
 }
 
 func (p *Photo) URL() URI {

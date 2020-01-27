@@ -25,6 +25,7 @@ type Photo @goModel(model: "github.com/ryutah/go-graphql-photo-share-api/domain/
   category: PhotoCategory!
   postedBy: User!
   taggedUsers: [User!]!
+  created: DateTime!
 }
 
 scalar PhotoID @goModel(model: "github.com/ryutah/go-graphql-photo-share-api/domain/model.PhotoID")
@@ -54,3 +55,5 @@ type User @goModel(model: "github.com/ryutah/go-graphql-photo-share-api/domain/m
 scalar UserID @goModel(model: "github.com/ryutah/go-graphql-photo-share-api/domain/model.UserID")
 
 scalar URI @goModel(model: "github.com/ryutah/go-graphql-photo-share-api/domain/model.URI")
+
+scalar DateTime @goModel(model: "github.com/ryutah/go-graphql-photo-share-api/domain/model.DateTime")

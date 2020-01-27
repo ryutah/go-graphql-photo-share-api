@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
@@ -51,6 +52,7 @@ type ComplexityRoot struct {
 
 	Photo struct {
 		Category    func(childComplexity int) int
+		Created     func(childComplexity int) int
 		Description func(childComplexity int) int
 		ID          func(childComplexity int) int
 		Name        func(childComplexity int) int
@@ -122,6 +124,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Photo.Category(childComplexity), true
+
+	case "Photo.created":
+		if e.complexity.Photo.Created == nil {
+			break
+		}
+
+		return e.complexity.Photo.Created(childComplexity), true
 
 	case "Photo.description":
 		if e.complexity.Photo.Description == nil {
@@ -303,6 +312,7 @@ type Photo @goModel(model: "github.com/ryutah/go-graphql-photo-share-api/domain/
   category: PhotoCategory!
   postedBy: User!
   taggedUsers: [User!]!
+  created: DateTime!
 }
 
 scalar PhotoID @goModel(model: "github.com/ryutah/go-graphql-photo-share-api/domain/model.PhotoID")
@@ -332,6 +342,8 @@ type User @goModel(model: "github.com/ryutah/go-graphql-photo-share-api/domain/m
 scalar UserID @goModel(model: "github.com/ryutah/go-graphql-photo-share-api/domain/model.UserID")
 
 scalar URI @goModel(model: "github.com/ryutah/go-graphql-photo-share-api/domain/model.URI")
+
+scalar DateTime @goModel(model: "github.com/ryutah/go-graphql-photo-share-api/domain/model.DateTime")
 `},
 )
 
@@ -704,6 +716,43 @@ func (ec *executionContext) _Photo_taggedUsers(ctx context.Context, field graphq
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
 	return ec.marshalNUser2ᚕᚖgithubᚗcomᚋryutahᚋgoᚑgraphqlᚑphotoᚑshareᚑapiᚋdomainᚋmodelᚐUserᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Photo_created(ctx context.Context, field graphql.CollectedField, obj *model.Photo) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "Photo",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Created, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNDateTime2timeᚐTime(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_totalPhotos(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2319,6 +2368,11 @@ func (ec *executionContext) _Photo(ctx context.Context, sel ast.SelectionSet, ob
 				}
 				return res
 			})
+		case "created":
+			out.Values[i] = ec._Photo_created(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -2695,6 +2749,20 @@ func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interf
 
 func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.SelectionSet, v bool) graphql.Marshaler {
 	res := graphql.MarshalBoolean(v)
+	if res == graphql.Null {
+		if !ec.HasError(graphql.GetResolverContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNDateTime2timeᚐTime(ctx context.Context, v interface{}) (time.Time, error) {
+	return model.UnmarshalDateTime(v)
+}
+
+func (ec *executionContext) marshalNDateTime2timeᚐTime(ctx context.Context, sel ast.SelectionSet, v time.Time) graphql.Marshaler {
+	res := model.MarshalDateTime(v)
 	if res == graphql.Null {
 		if !ec.HasError(graphql.GetResolverContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")

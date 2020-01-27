@@ -13,6 +13,7 @@ import (
 	"github.com/ryutah/go-graphql-photo-share-api/domain/factory"
 	"github.com/ryutah/go-graphql-photo-share-api/domain/model"
 	"github.com/ryutah/go-graphql-photo-share-api/domain/repository"
+	"github.com/ryutah/go-graphql-photo-share-api/lib/times"
 )
 
 var (
@@ -24,19 +25,21 @@ var (
 			Name:        "Dropping the Heart Chute",
 			Description: "The heart chute is one of my favorite chutes",
 			Category:    model.PhotoCategoryAction,
+			Created:     times.Date(1977, 3, 28, 0, 0, 0, 0),
 		},
 		"2": &model.Photo{
 			ID:       "2",
 			PostedBy: "sSchmidt",
 			Name:     "Enjoying the sunshine",
 			Category: model.PhotoCategorySelfie,
+			Created:  times.Date(1985, 2, 1, 0, 0, 0, 0),
 		},
 		"3": &model.Photo{
 			ID:          "3",
 			PostedBy:    "sSchmidt",
 			Description: "25 laps on gunbarrel today",
 			Name:        "Gunbarrel 25",
-			Category:    model.PhotoCategoryLandscape,
+			Created:     times.Date(2018, 4, 15, 19, 9, 57, 0),
 		},
 	}
 )
