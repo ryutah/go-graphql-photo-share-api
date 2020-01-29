@@ -18,16 +18,18 @@ import (
 func InjectPhotoUsecase() *usecase.Photo {
 	photo := inmemory.NewPhoto()
 	factoryPhoto := factory.NewPhoto(photo)
-	usecasePhoto := usecase.NewPhoto(factoryPhoto, photo, photo)
+	tag := inmemory.NewTag()
+	usecasePhoto := usecase.NewPhoto(factoryPhoto, photo, photo, tag)
 	return usecasePhoto
 }
 
 func InjectUserUsecase() *usecase.User {
 	user := inmemory.NewUser()
-	usecaseUser := usecase.NewUser(user, user)
+	tag := inmemory.NewTag()
+	usecaseUser := usecase.NewUser(user, user, tag)
 	return usecaseUser
 }
 
 // local.go:
 
-var dependencies = wire.NewSet(usecase.NewPhoto, usecase.NewUser, inmemory.NewPhoto, inmemory.NewUser, factory.NewPhoto, wire.Bind(new(repository.Photo), new(*inmemory.Photo)), wire.Bind(new(repository.PhotoSearch), new(*inmemory.Photo)), wire.Bind(new(repository.User), new(*inmemory.User)), wire.Bind(new(repository.UserSearch), new(*inmemory.User)), wire.Bind(new(factory.PhotoIDGenerator), new(*inmemory.Photo)))
+var dependencies = wire.NewSet(usecase.NewPhoto, usecase.NewUser, inmemory.NewPhoto, inmemory.NewUser, inmemory.NewTag, factory.NewPhoto, wire.Bind(new(repository.Photo), new(*inmemory.Photo)), wire.Bind(new(repository.PhotoSearch), new(*inmemory.Photo)), wire.Bind(new(repository.User), new(*inmemory.User)), wire.Bind(new(repository.UserSearch), new(*inmemory.User)), wire.Bind(new(repository.Tag), new(*inmemory.Tag)), wire.Bind(new(factory.PhotoIDGenerator), new(*inmemory.Photo)))

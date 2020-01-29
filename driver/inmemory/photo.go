@@ -8,8 +8,6 @@ import (
 
 	"strconv"
 
-	"sort"
-
 	"github.com/ryutah/go-graphql-photo-share-api/domain/factory"
 	"github.com/ryutah/go-graphql-photo-share-api/domain/model"
 	"github.com/ryutah/go-graphql-photo-share-api/domain/repository"
@@ -67,14 +65,11 @@ func (p *Photo) Create(ctx context.Context, photo model.Photo) error {
 	return nil
 }
 
-func (p *Photo) All(_ context.Context) ([]*model.Photo, error) {
-	result := make([]*model.Photo, 0, len(photoStorage))
+func (p *Photo) All(_ context.Context) (model.PhotoList, error) {
+	result := make(model.PhotoList)
 	for _, v := range photoStorage {
-		result = append(result, v)
+		result.Add(v)
 	}
-	sort.Slice(result, func(i, j int) bool {
-		return result[i].ID < result[j].ID
-	})
 	return result, nil
 }
 
@@ -82,19 +77,25 @@ func (p *Photo) Count(_ context.Context) (int, error) {
 	return len(photoStorage), nil
 }
 
-func (p *Photo) Search(ctx context.Context, q repository.PhotoQuery) ([]*model.Photo, error) {
+func (p *Photo) GetMulti(_ context.Context, ids []model.PhotoID) (model.PhotoList, error) {
+	results := make(model.PhotoList)
+	for _, id := range ids {
+		if photo, ok := photoStorage[id]; ok {
+			results.Add(photo)
+		}
+	}
+	return results, nil
+}
+
+func (p *Photo) Search(ctx context.Context, q repository.PhotoQuery) (model.PhotoList, error) {
 	r := new(photoQueryResolver)
 	q.Reslove(r)
 
-	result := make([]*model.Photo, 0, len(photoStorage))
+	result := make(model.PhotoList)
 	for _, v := range photoStorage {
-		if val := r.postedBy; val != nil && v.PostedBy != *val {
-			continue
+		if r.isMatchQuery(v) {
+			result.Add(v)
 		}
-		if val := r.tagged; val != nil && !existsTag(v.ID, *val) {
-			continue
-		}
-		result = append(result, v)
 	}
 
 	return result, nil
@@ -107,14 +108,42 @@ func (p *Photo) NewID() model.PhotoID {
 }
 
 type photoQueryResolver struct {
-	postedBy *model.UserID
-	tagged   *model.UserID
+	postedBys []model.UserID
+	tagged    *model.UserID
 }
 
-func (p *photoQueryResolver) PostedBy(id model.UserID) {
-	p.postedBy = &id
+func (p *photoQueryResolver) PostedBys(id ...model.UserID) {
+	p.postedBys = append(p.postedBys, id...)
 }
 
 func (p *photoQueryResolver) Tagged(id model.UserID) {
 	p.tagged = &id
+}
+
+func (p *photoQueryResolver) isMatchQuery(photo *model.Photo) bool {
+	if photo == nil {
+		return false
+	}
+
+	var (
+		isMatchPostedBy = func(postedBy model.UserID) bool {
+			if len(p.postedBys) == 0 {
+				return true
+			}
+			for _, id := range p.postedBys {
+				if postedBy == id {
+					return true
+				}
+			}
+			return false
+		}
+		isMatchTaggedUser = func(id model.PhotoID) bool {
+			if p.tagged == nil {
+				return true
+			}
+			return tagStorage.exists(id, *p.tagged)
+		}
+	)
+
+	return isMatchPostedBy(photo.PostedBy) && isMatchTaggedUser(photo.ID)
 }

@@ -43,16 +43,26 @@ func (u *User) Get(_ context.Context, id model.UserID) (*model.User, error) {
 	return user, nil
 }
 
-func (u *User) Search(ctx context.Context, q repository.UserQuery) ([]*model.User, error) {
+func (u *User) GetMulti(ctx context.Context, ids []model.UserID) (model.UserList, error) {
+	results := make(model.UserList)
+	for _, id := range ids {
+		if user, ok := userStorage[id]; ok {
+			results.Add(user)
+		}
+	}
+	return results, nil
+}
+
+func (u *User) Search(ctx context.Context, q repository.UserQuery) (model.UserList, error) {
 	r := new(userQueryResolver)
 	q.Resolve(r)
 
-	results := make([]*model.User, 0, len(userStorage))
+	results := make(model.UserList)
 	for _, v := range userStorage {
-		if val := r.inPhoto; val != nil && !existsTag(*val, v.ID) {
+		if val := r.inPhoto; val != nil && !tagStorage.exists(*val, v.ID) {
 			continue
 		}
-		results = append(results, v)
+		results.Add(v)
 	}
 
 	return results, nil

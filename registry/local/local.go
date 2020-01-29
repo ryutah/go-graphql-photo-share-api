@@ -15,11 +15,13 @@ var dependencies = wire.NewSet(
 	usecase.NewUser,
 	inmemory.NewPhoto,
 	inmemory.NewUser,
+	inmemory.NewTag,
 	factory.NewPhoto,
 	wire.Bind(new(repository.Photo), new(*inmemory.Photo)),
 	wire.Bind(new(repository.PhotoSearch), new(*inmemory.Photo)),
 	wire.Bind(new(repository.User), new(*inmemory.User)),
 	wire.Bind(new(repository.UserSearch), new(*inmemory.User)),
+	wire.Bind(new(repository.Tag), new(*inmemory.Tag)),
 	wire.Bind(new(factory.PhotoIDGenerator), new(*inmemory.Photo)),
 )
 
