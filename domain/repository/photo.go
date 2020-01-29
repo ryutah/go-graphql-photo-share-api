@@ -8,12 +8,13 @@ import (
 
 type Photo interface {
 	Create(context.Context, model.Photo) error
-	All(context.Context) ([]*model.Photo, error)
+	All(context.Context) (model.PhotoList, error)
 	Count(context.Context) (int, error)
+	GetMulti(context.Context, []model.PhotoID) (model.PhotoList, error)
 }
 
 type PhotoSearch interface {
-	Search(context.Context, PhotoQuery) ([]*model.Photo, error)
+	Search(context.Context, PhotoQuery) (model.PhotoList, error)
 }
 
 type PhotoQueryResolver interface {

@@ -5,17 +5,17 @@ import (
 	"github.com/ryutah/go-graphql-photo-share-api/registry"
 )
 
-type Root struct {
+type root struct {
 	query    *query
 	mutation *mutation
 	photo    *photo
 	user     *user
 }
 
-var _ graphql.ResolverRoot = new(Root)
+var _ graphql.ResolverRoot = new(root)
 
-func NewRoot(p *registry.Provider) *Root {
-	return &Root{
+func newRoot(p *registry.Provider) *root {
+	return &root{
 		query:    newQuery(p),
 		mutation: newMutation(p),
 		photo:    newPhoto(p),
@@ -23,18 +23,18 @@ func NewRoot(p *registry.Provider) *Root {
 	}
 }
 
-func (r *Root) Query() graphql.QueryResolver {
+func (r *root) Query() graphql.QueryResolver {
 	return r.query
 }
 
-func (r *Root) Mutation() graphql.MutationResolver {
+func (r *root) Mutation() graphql.MutationResolver {
 	return r.mutation
 }
 
-func (r *Root) Photo() graphql.PhotoResolver {
+func (r *root) Photo() graphql.PhotoResolver {
 	return r.photo
 }
 
-func (r *Root) User() graphql.UserResolver {
+func (r *root) User() graphql.UserResolver {
 	return r.user
 }

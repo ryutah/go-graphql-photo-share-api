@@ -8,10 +8,11 @@ import (
 
 type User interface {
 	Get(context.Context, model.UserID) (*model.User, error)
+	GetMulti(context.Context, []model.UserID) (model.UserList, error)
 }
 
 type UserSearch interface {
-	Search(context.Context, UserQuery) ([]*model.User, error)
+	Search(context.Context, UserQuery) (model.UserList, error)
 }
 
 type UserQueryResolver interface {
