@@ -46,8 +46,8 @@ func (p *Photo) Post(ctx context.Context, input model.PostPhotoInput) (*model.Ph
 	return newPhoto, nil
 }
 
-func (p *Photo) All(ctx context.Context) ([]*model.Photo, error) {
-	photos, err := p.repository.photo.All(ctx)
+func (p *Photo) All(ctx context.Context, query repository.PhotoQuery) ([]*model.Photo, error) {
+	photos, err := p.repository.photoSearch.Search(ctx, query)
 	if err != nil {
 		return nil, err
 	}

@@ -62,7 +62,7 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		AllPhotos   func(childComplexity int) int
+		AllPhotos   func(childComplexity int, after *time.Time) int
 		TotalPhotos func(childComplexity int) int
 	}
 
@@ -84,7 +84,7 @@ type PhotoResolver interface {
 }
 type QueryResolver interface {
 	TotalPhotos(ctx context.Context) (int, error)
-	AllPhotos(ctx context.Context) ([]*model.Photo, error)
+	AllPhotos(ctx context.Context, after *time.Time) ([]*model.Photo, error)
 }
 type UserResolver interface {
 	PostedPhotos(ctx context.Context, obj *model.User) ([]*model.Photo, error)
@@ -179,7 +179,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Query.AllPhotos(childComplexity), true
+		args, err := ec.field_Query_allPhotos_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.AllPhotos(childComplexity, args["after"].(*time.Time)), true
 
 	case "Query.totalPhotos":
 		if e.complexity.Query.TotalPhotos == nil {
@@ -297,7 +302,7 @@ directive @goField(forceResolver: Boolean, name: String) on INPUT_FIELD_DEFINITI
 
 type Query {
   totalPhotos: Int!
-  allPhotos: [Photo!]
+  allPhotos(after: DateTime): [Photo!]
 }
 
 type Mutation {
@@ -376,6 +381,20 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		}
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_allPhotos_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *time.Time
+	if tmp, ok := rawArgs["after"]; ok {
+		arg0, err = ec.unmarshalODateTime2ᚖtimeᚐTime(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["after"] = arg0
 	return args, nil
 }
 
@@ -808,10 +827,17 @@ func (ec *executionContext) _Query_allPhotos(ctx context.Context, field graphql.
 		IsMethod: true,
 	}
 	ctx = graphql.WithResolverContext(ctx, rctx)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_allPhotos_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	rctx.Args = args
 	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().AllPhotos(rctx)
+		return ec.resolvers.Query().AllPhotos(rctx, args["after"].(*time.Time))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3206,6 +3232,29 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 		return graphql.Null
 	}
 	return ec.marshalOBoolean2bool(ctx, sel, *v)
+}
+
+func (ec *executionContext) unmarshalODateTime2timeᚐTime(ctx context.Context, v interface{}) (time.Time, error) {
+	return model.UnmarshalDateTime(v)
+}
+
+func (ec *executionContext) marshalODateTime2timeᚐTime(ctx context.Context, sel ast.SelectionSet, v time.Time) graphql.Marshaler {
+	return model.MarshalDateTime(v)
+}
+
+func (ec *executionContext) unmarshalODateTime2ᚖtimeᚐTime(ctx context.Context, v interface{}) (*time.Time, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalODateTime2timeᚐTime(ctx, v)
+	return &res, err
+}
+
+func (ec *executionContext) marshalODateTime2ᚖtimeᚐTime(ctx context.Context, sel ast.SelectionSet, v *time.Time) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec.marshalODateTime2timeᚐTime(ctx, sel, *v)
 }
 
 func (ec *executionContext) marshalOPhoto2ᚕᚖgithubᚗcomᚋryutahᚋgoᚑgraphqlᚑphotoᚑshareᚑapiᚋdomainᚋmodelᚐPhotoᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Photo) graphql.Marshaler {

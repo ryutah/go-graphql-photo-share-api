@@ -1,8 +1,10 @@
 package model
 
 import (
-	"errors"
+	"fmt"
 	"time"
+
+	"regexp"
 
 	"github.com/99designs/gqlgen/graphql"
 )
@@ -13,9 +15,17 @@ func MarshalDateTime(t time.Time) graphql.Marshaler {
 	return graphql.MarshalTime(t)
 }
 
+var datetimeFormatOnlyDate = regexp.MustCompile(`^\d{4}-\d{1,2}-\d{1,2}$`)
+
 func UnmarshalDateTime(v interface{}) (time.Time, error) {
-	if s, ok := v.(string); ok {
+	s, ok := v.(string)
+	if !ok {
+		return time.Time{}, fmt.Errorf("could not parse to datetime(%#v) to string", v)
+	}
+	switch {
+	case datetimeFormatOnlyDate.MatchString(s):
+		return time.Parse("2006-01-02", s)
+	default:
 		return time.Parse(time.RFC3339, s)
 	}
-	return time.Time{}, errors.New("time should be format RFC3339")
 }

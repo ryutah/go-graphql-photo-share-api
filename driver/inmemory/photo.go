@@ -3,6 +3,7 @@ package inmemory
 import (
 	"context"
 	"sync"
+	"time"
 
 	"fmt"
 
@@ -108,8 +109,9 @@ func (p *Photo) NewID() model.PhotoID {
 }
 
 type photoQueryResolver struct {
-	postedBys []model.UserID
-	tagged    *model.UserID
+	postedBys    []model.UserID
+	tagged       *model.UserID
+	createdAfter *time.Time
 }
 
 func (p *photoQueryResolver) PostedBys(id ...model.UserID) {
@@ -118,6 +120,10 @@ func (p *photoQueryResolver) PostedBys(id ...model.UserID) {
 
 func (p *photoQueryResolver) Tagged(id model.UserID) {
 	p.tagged = &id
+}
+
+func (p *photoQueryResolver) CreatedAfter(t time.Time) {
+	p.createdAfter = &t
 }
 
 func (p *photoQueryResolver) isMatchQuery(photo *model.Photo) bool {
@@ -143,7 +149,13 @@ func (p *photoQueryResolver) isMatchQuery(photo *model.Photo) bool {
 			}
 			return tagStorage.exists(id, *p.tagged)
 		}
+		isMatchCreatedAfter = func(t time.Time) bool {
+			if p.createdAfter == nil {
+				return true
+			}
+			return t.Equal(*p.createdAfter) || t.After(*p.createdAfter)
+		}
 	)
 
-	return isMatchPostedBy(photo.PostedBy) && isMatchTaggedUser(photo.ID)
+	return isMatchPostedBy(photo.PostedBy) && isMatchTaggedUser(photo.ID) && isMatchCreatedAfter(photo.Created)
 }

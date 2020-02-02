@@ -10,7 +10,7 @@ directive @goField(forceResolver: Boolean, name: String) on INPUT_FIELD_DEFINITI
 
 type Query {
   totalPhotos: Int!
-  allPhotos: [Photo!]
+  allPhotos(after: DateTime): [Photo!]
 }
 
 type Mutation {
